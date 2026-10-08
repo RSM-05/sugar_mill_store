@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Rajapur Sugar Mill Store Management System</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --secondary: #0284c7;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --gray-100: #f3f4f6;
+            --gray-300: #d1d5db;
+            --text-main: #1f2937;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #f0f2f5; color: var(--text-main); padding: 20px; }
+        .no-print { display: block; }
+        .print-only { display: none; }
+
+        /* Tabs Navigation */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 3px solid var(--primary); padding-bottom: 10px; }
+        .tab-btn { padding: 10px 20px; background: #e5e7eb; border: none; cursor: pointer; font-weight: bold; border-radius: 5px 5px 0 0; font-size: 15px; transition: 0.3s; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        .tab-content { display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .tab-content.active { display: block; }
+
+        /* Form Layouts */
+        .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px; }
+        label { color: #4b5563; font-weight: 600; font-size: 14px; }
+        input, select, textarea { padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 4px; font-size: 14px; width: 100%; }
+        input[readonly] { background: #e5e7eb; cursor: not-allowed; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        .grid-header-fields { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; }
+
+        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; color: white; display: inline-flex; align-items: center; gap: 5px; justify-content: center; transition: 0.2s; }
+        .btn-primary { background: var(--primary); }
+        .btn-primary:hover { background: #172554; }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--danger); }
+        
+        /* Dynamic Excel-Wise Table Grid */
+        .items-table-container { margin: 20px 0; overflow-x: auto; }
+        table.items-table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        table.items-table th { background: var(--primary); color: white; padding: 10px; text-align: left; font-size: 14px; border: 1px solid #1e40af; }
+        table.items-table td { padding: 6px; border: 1px solid var(--gray-300); vertical-align: middle; }
+        .delete-row-btn { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 18px; }
+        
+        /* Autocomplete List Container */
+        .autocomplete-wrapper { position: relative; }
+        .autocomplete-items { position: absolute; border: 1px solid #d4d4d4; border-bottom: none; border-top: none; z-index: 99; top: 100%; left: 0; right: 0; background: white; max-height: 150px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .autocomplete-items div { padding: 8px; cursor: pointer; border-bottom: 1px solid #d4d4d4; }
+        .autocomplete-items div:hover { background-color: #e9e9e9; }
+
+        /* Calculation Footer Panel layout */
+        .calc-panel { margin-top: 20px; border-top: 2px solid var(--gray-300); padding-top: 20px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 40px; }
+        .calc-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        /* Hidden Custom Modal Styles */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 8px; width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; color: var(--primary); }
+        .admin-checkbox-group { margin: 15px 0; display: flex; flex-direction: column; gap: 10px; }
+        .admin-checkbox-group label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: normal; }
+        .admin-checkbox-group input { width: auto; }
+
+        /* Strict Verification Recovery Screen Layout */
+        #recovery-screen { display: none; background: white; max-width: 600px; margin: 100px auto; padding: 40px; border-radius: 8px; border-top: 5px solid var(--danger); box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center; }
+
+        /* Print Layout - A4, single clean document, no dashboard duplication */
+        @media print {
+            @page { size: A4 portrait; margin: 8mm; }
+            html, body { width: 210mm; min-height: 297mm; background: #fff !important; color: #000 !important; padding: 0 !important; margin: 0 !important; }
+            body { font-family: Arial, Helvetica, sans-serif !important; }
+            #main-application-frame, #recovery-screen { display: none !important; }
+            #print-engine-output { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            .print-page, .party-print-page, .ledger-print-document {
+                width: 194mm !important;
+                min-height: 281mm !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
+                background: #fff !important;
+                color: #000 !important;
+                box-sizing: border-box !important;
+                position: relative !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                overflow: hidden !important;
+            }
+            .print-page:last-child, .party-print-page:last-child, .ledger-print-document:last-child { page-break-after: auto !important; break-after: auto !important; }
+            .print-company { text-align:center; margin-bottom:5mm; }
+            .print-company h1 { font-size:17px; margin:0 0 2px; font-weight:700; }
+            .print-company p { font-size:10px; margin:0; }
+            .gr-title { text-align:center; font-size:14px; font-weight:700; margin:3mm 0 4mm; }
+            .print-meta { width:100%; display:grid; grid-template-columns:1fr 1fr 1fr; gap:2mm 7mm; font-size:10.5px; font-weight:700; margin-bottom:4mm; }
+            .print-meta .wide { grid-column:1 / 3; }
+            .print-table, .party-report-table { width:100% !important; border-collapse:collapse !important; table-layout:fixed; margin:0 !important; }
+            .print-table th, .print-table td, .party-report-table th, .party-report-table td { border:1px solid #222 !important; padding:4px 4px !important; font-size:9.5px !important; vertical-align:middle !important; }
+            .print-table th, .party-report-table th { font-weight:700 !important; text-align:center !important; background:#fff !important; }
+            .print-table td.num, .party-report-table td.num { text-align:right !important; }
+            .gr-bottom { display:flex; justify-content:flex-end; margin-top:2mm; }
+            .gr-summary { width:58%; border-top:1px solid #222; border-bottom:1px solid #222; }
+            .gr-summary-row { display:grid; grid-template-columns:1fr 38mm; padding:1.3mm 1mm; font-size:10px; }
+            .gr-summary-row span:last-child { text-align:right; font-weight:700; }
+            .gr-summary-row.net { border-top:1px solid #222; font-size:11px; font-weight:700; }
+            .print-remarks { margin-top:3mm; font-size:9.5px; min-height:10mm; }
+            .print-signatures { position:absolute; left:0; right:0; bottom:7mm; display:flex; justify-content:space-between; font-size:10px; font-weight:700; }
+            .print-signatures > div { width:38%; text-align:center; border-top:1px solid #222; padding-top:2mm; }
+            .party-report-header { text-align:center; margin-bottom:3mm; }
+            .party-report-header h1 { font-size:16px; margin:0; }
+            .party-report-header h2 { font-size:13px; margin:1mm 0; }
+            .party-report-header h3 { font-size:11px; margin:0; font-weight:700; }
+            .party-meta { display:grid; grid-template-columns:1fr 1fr; gap:1.5mm 8mm; font-size:9.5px; margin-bottom:3mm; }
+            .party-summary-wrap { display:flex; justify-content:flex-end; margin-top:3mm; }
+            .party-summary { width:43%; border:1px solid #222; border-collapse:collapse; }
+            .party-summary td { border:1px solid #222; padding:1.2mm 2mm; font-size:9.5px; }
+            .party-summary td:last-child { text-align:right; font-weight:700; }
+            .party-summary .net-row td { font-weight:700; font-size:10.5px; }
+            .party-section-title { font-weight:700; font-size:10px; margin:2mm 0 1mm; }
+            .party-footer-note { position:absolute; left:0; right:0; bottom:2mm; text-align:center; font-size:8px; }
+        }
+
+        /* Searchable Supplier Combo */
+        .supplier-search-wrap { position: relative; width: 100%; }
+        .supplier-search-input { width: 100%; min-height: 38px; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 4px; font-size: 14px; background: #fff; }
+        .supplier-search-input:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 2px rgba(2,132,199,.12); }
+        .supplier-search-list { position: absolute; z-index: 99999; left: 0; right: 0; top: calc(100% + 2px); background: #fff; border: 1px solid #94a3b8; border-radius: 4px; max-height: 220px; overflow-y: auto; box-shadow: 0 8px 18px rgba(0,0,0,.18); display: none; }
+        .supplier-search-item { padding: 9px 12px; cursor: pointer; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+        .supplier-search-item:last-child { border-bottom: 0; }
+        .supplier-search-item:hover { background: #eff6ff; }
+        .supplier-search-empty { padding: 10px 12px; color: #6b7280; font-size: 13px; }
+
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; }
+        .badge-locked { background: var(--danger); }
+        .badge-unlocked { background: var(--success); }
+
+        @media (max-width: 900px) {
+            body { padding: 8px; }
+            .grid-header-fields { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            .grid-4 { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+            .calc-panel { grid-template-columns: 1fr; gap: 15px; }
+            .tabs { overflow-x: auto; flex-wrap: nowrap; }
+            .tab-btn { white-space: nowrap; font-size: 13px; padding: 9px 12px; }
+        }
+        @media (max-width: 560px) {
+            body { padding: 5px; }
+            .grid-header-fields, .grid-4 { grid-template-columns: 1fr !important; }
+            .grid-header-fields > .form-group[style*="grid-column"] { grid-column: auto !important; }
+            .calc-fields { grid-template-columns: 1fr; }
+            .calc-fields .form-group { grid-column: auto !important; }
+            .modal-content { width: calc(100% - 20px); padding: 18px; }
+            .tab-content { padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- RECOVERY SCREEN PANEL FOR WIPE CRASHES -->
+    <div id="recovery-screen">
+        <h2 style="color: var(--danger); margin-bottom: 15px;">⚠️ System Database Reset Detected</h2>
+        <p style="color: #4b5563; margin-bottom: 25px; font-size: 15px; line-height: 1.6;">
+            The browser environment database memory has been cleared or Chrome was uninstalled. To restore your complete suppliers matrix, auto items, and purchase registers log, please upload your latest encrypted timestamp backup file.
+        </p>
+        <div style="background: #f3f4f6; padding: 20px; border-radius: 6px; border: 1px dashed var(--gray-300); margin-bottom: 20px;">
+            <input type="file" id="recovery-file-input" accept=".dat" style="width: auto;">
+        </div>
+        <button class="btn btn-primary" onclick="triggerSystemDatabaseRecovery()" style="padding: 12px 25px; font-size: 15px;">🔄 Restore Database Structure</button>
+    </div>
+
+    <!-- MAIN SYSTEM FRAME APPLICATION FRAMEWORK -->
+    <div id="main-application-frame">
+        <!-- TOP RUNTIME APP BRANDING PANEL -->
+        <div class="no-print" style="background: #1e293b; color: white; padding: 12px 20px; margin-bottom: 20px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <h2 style="font-size: 18px; letter-spacing: 0.5px;">🏢 RAJAPUR SUGAR MILLS STORE ERP</h2>
+                <span style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 4px; font-size: 14px; font-weight: bold;">
+                    FY: <span id="top-display-fy">2083-2084</span>
+                </span>
+            </div>
+            <div>
+                <span id="system-lock-badge" class="status-badge badge-unlocked">SYSTEM: UNLOCKED</span>
+                <button class="btn btn-success" onclick="triggerEncryptedSystemBackup()" style="padding: 6px 12px; font-size: 12px; margin-left: 10px;">💾 Daily Data Backup</button>
+            </div>
+        </div>
+
+        <!-- TABS NAVIGATIONS -->
+        <div class="tabs no-print">
+            <button class="tab-btn active" onclick="switchActiveTab('purchase-tab')">📥 Purchase Entry</button>
+            <button class="tab-btn" onclick="switchActiveTab('supplier-tab')">👥 Supplier Master</button>
+            <button class="tab-btn" onclick="switchActiveTab('report-tab')">📊 Supplier Wise Report</button>
+        </div>
+
+        <!-- PURCHASE ENTRY -->
+        <section id="purchase-tab" class="tab-content active">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:15px;">
+                <div>
+                    <h2 style="color:var(--primary);margin-bottom:4px;">📥 Purchase Entry / Goods Receipt</h2>
+                    <div style="font-size:13px;color:#64748b;">Enter purchase voucher, material details and all charges.</div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button type="button" class="btn btn-primary" onclick="lookupPurchaseVoucherRecord()">🔍 Load GR</button>
+                    <button type="button" class="btn btn-success" id="btn-save-purchase" onclick="saveActivePurchaseVoucher()">💾 Save Voucher</button>
+                    <button type="button" class="btn btn-primary" id="btn-clear-form" onclick="resetPurchaseEntryFormLayout()">🔄 New / Clear</button>
+                </div>
+            </div>
+
+            <div class="grid-header-fields">
+                <div class="form-group"><label>GR No. (Search / Auto)</label><input id="p-gr-no" type="text" placeholder="GR-1"></div>
+                <div class="form-group">
+                    <label>Supplier / Party Name</label>
+                    <div class="supplier-search-wrap" id="p-supplier-search-wrap">
+                        <input id="p-supplier-search-input" class="supplier-search-input" type="text" autocomplete="off" placeholder="Type supplier name...">
+                        <div id="p-supplier-search-list" class="supplier-search-list"></div>
+                    </div>
+                    <select id="p-supplier-select" style="display:none;"><option value="">-- Choose Supplier --</option></select>
+                </div>
+                <div class="form-group"><label>Invoice / Bill Number</label><input id="p-invoice-no" type="text" placeholder="Bill / Invoice No."></div>
+                <div class="form-group"><label>Invoice / Challan Date</label><input id="p-invoice-date" type="date"></div>
+                <div class="form-group"><label>Entry Date (English AD)</label><input id="p-date-ad" type="date" onchange="calculateNepaliBSSambantDate()"></div>
+                <div class="form-group"><label>Entry Date (Nepali BS)</label><input id="p-date-bs" type="text" placeholder="2083-..-.."></div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px;gap:10px;flex-wrap:wrap;">
+                <h3 style="color:#334155;">🧾 Material Entry Ledger Grid</h3>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button type="button" class="btn btn-primary" id="add-more-rows-btn" onclick="generateBlankItemGridRows(1)">➕ Add More Row</button>
+                    <button type="button" class="btn btn-success" onclick="exportCurrentGRToExcel()">📊 Export Excel</button>
+                </div>
+            </div>
+
+            <div class="items-table-container">
+                <table class="items-table">
+                    <thead><tr>
+                        <th>Material Description / Item Name</th><th>Qty 1</th><th>Unit 1</th><th>Qty 2</th><th>Unit 2</th><th>Calculated Rate</th><th>Amount (Manual)</th><th>Wipe</th>
+                    </tr></thead>
+                    <tbody id="purchase-tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="calc-panel">
+                <div>
+                    <div class="form-group"><label>Store Remarks / Cargo Vehicle Dispatch Details Log</label><textarea id="p-remarks" rows="5" placeholder="Remarks / vehicle no. / dispatch details..."></textarea></div>
+                    <div style="font-size:12px;color:#64748b;line-height:1.5;">Item amount is entered manually. Rate is calculated from amount and quantity, while manual rate changes can recalculate the amount.</div>
+                </div>
+                <div class="calc-fields">
+                    <div class="form-group"><label>Total Items Sum Amt</label><input id="p-total-amt" type="number" value="0.00" readonly></div>
+                    <div class="form-group"><label>Custom Amt (+)</label><input id="p-custom-amt" type="number" value="0" step="any" oninput="calculateVoucherGrandTotals()"></div>
+                    <div class="form-group"><label>Transport Amt (+)</label><input id="p-trans-amt" type="number" value="0" step="any" oninput="calculateVoucherGrandTotals()"></div>
+                    <div class="form-group"><label>VAT Amount (+)</label><input id="p-vat-amt" type="number" value="0" step="any" oninput="calculateVoucherGrandTotals()"></div>
+                    <div class="form-group"><label>Other Expense (+)</label><input id="p-other-amt" type="number" value="0" step="any" oninput="calculateVoucherGrandTotals()"></div>
+                    <div class="form-group"><label>Discount Claimed (-)</label><input id="p-discount-amt" type="number" value="0" step="any" oninput="calculateVoucherGrandTotals()"></div>
+                    <div class="form-group" style="grid-column:1/-1;"><label style="color:var(--primary);font-size:15px;">VOUCHER GRAND NET TOTAL</label><input id="p-grand-total" type="number" value="0.00" readonly style="font-size:18px;font-weight:bold;color:var(--primary);"></div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;padding-top:15px;border-top:1px solid #e2e8f0;">
+                <button type="button" class="btn btn-success" onclick="saveActivePurchaseVoucher()">💾 Save Purchase Voucher</button>
+                <button type="button" class="btn btn-primary" onclick="resetPurchaseEntryFormLayout()">🔄 New Voucher / Clear</button>
+                <button type="button" class="btn btn-primary" onclick="buildAndPrintA4GRSlip()">🖨️ Print Current GR Slip</button>
+                <button type="button" class="btn btn-success" onclick="exportCurrentGRToExcel()">📊 Excel Export</button>
+            </div>
+        </section>
+
+        <!-- SUPPLIER MASTER -->
+        <section id="supplier-tab" class="tab-content">
+            <div style="margin-bottom:18px;">
+                <h2 style="color:var(--primary);margin-bottom:4px;">👥 Supplier Master</h2>
+                <div style="font-size:13px;color:#64748b;">Register vendor/company details and maintain the supplier directory.</div>
+            </div>
+            <div class="grid-4" style="background:#f8fafc;padding:18px;border:1px solid #e2e8f0;border-radius:6px;">
+                <div class="form-group"><label>Supplier / Company Name</label><input id="s-name" type="text" placeholder="Supplier name"></div>
+                <div class="form-group"><label>PAN / VAT Number</label><input id="s-pan" type="text" placeholder="PAN / VAT No."></div>
+                <div class="form-group"><label>Phone Contact Number</label><input id="s-phone" type="text" placeholder="Contact number"></div>
+                <div class="form-group"><label>Address</label><input id="s-address" type="text" placeholder="Company address"></div>
+            </div>
+            <div style="margin-top:15px;"><button type="button" class="btn btn-success" onclick="commitSupplierProfileToStorage()">💾 Save Supplier Account</button></div>
+
+            <div style="margin-top:25px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+                    <h3 style="color:#334155;margin:0;">📋 Registered Suppliers Ledger Directory</h3>
+                    <div class="supplier-search-wrap" style="max-width:360px;">
+                        <input id="supplier-master-search-input" class="supplier-search-input" type="text" autocomplete="off" placeholder="Type any supplier word to search...">
+                    </div>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="items-table" style="min-width:980px;">
+                        <thead><tr><th>Ref Code</th><th>Company Vendor Name</th><th>PAN / VAT Registration Number</th><th>Primary Contact Link</th><th>Address</th><th>Delete</th></tr></thead>
+                        <tbody id="suppliers-list-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SUPPLIER WISE REPORT -->
+        <section id="report-tab" class="tab-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
+                <div><h2 style="color:var(--primary);margin-bottom:4px;">📊 Supplier Wise Reports</h2><div style="font-size:13px;color:#64748b;">Search supplier and compile itemized statements between dates.</div></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button type="button" class="btn btn-primary" onclick="compilePartyWiseStatementLedger()">📊 Build Report Ledger</button>
+                    <button type="button" class="btn btn-success" onclick="exportCompiledLedgerToExcel()">📗 Export Excel</button>
+                    <button type="button" class="btn btn-primary" onclick="printCompiledLedgerStatement()">🖨️ Print Full Ledger</button>
+                </div>
+            </div>
+            <div class="grid-4" style="background:#f8fafc;padding:18px;border:1px solid #e2e8f0;border-radius:6px;">
+                <div class="form-group" style="grid-column:span 2;">
+                    <label>Select Corporate Vendor Account</label>
+                    <div class="supplier-search-wrap" id="r-supplier-search-wrap">
+                        <input id="r-supplier-search-input" class="supplier-search-input" type="text" autocomplete="off" placeholder="Type supplier name...">
+                        <div id="r-supplier-search-list" class="supplier-search-list"></div>
+                    </div>
+                    <select id="r-supplier-select" style="display:none;"><option value="">-- Choose Corporate Supplier --</option></select>
+                </div>
+                <div class="form-group"><label>From Date Limit (Nepali BS)</label><input id="r-from-date" type="text" placeholder="2083-01-01"></div>
+                <div class="form-group"><label>To Date Limit (Nepali BS)</label><input id="r-to-date" type="text" placeholder="2083-12-30"></div>
+            </div>
+            <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-primary" onclick="compilePartyWiseStatementLedger()">🔎 Compile Party Wise Itemized Statement</button>
+                <button type="button" class="btn btn-success" onclick="exportCompiledLedgerToExcel()">📊 Excel-Wise Report</button>
+            </div>
+            <div id="report-screen-preview" style="margin-top:20px;"></div>
+        </section>
+
+        <!-- ADMIN CONFIGURATION MODAL -->
+        <div id="adminModal" class="modal">
+            <div class="modal-content" style="max-width:650px;max-height:90vh;overflow-y:auto;">
+                <div class="modal-header">🛡️ Master Developer Configuration Toolkit</div>
+                <div id="admin-auth-area">
+                    <p style="margin-bottom:8px;color:#475569;">Enter Master Security Verification Key Access Code.</p>
+                    <div style="font-size:12px;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;padding:8px;margin-bottom:12px;">Admin Configuration is hidden from the dashboard. Open it with <b>Ctrl + L</b>, then press <b>A</b>.</div>
+                    <div class="form-group"><label>Master Password</label><input id="admin-password-input" type="password" autocomplete="off" placeholder="Enter access password"></div>
+                    <div style="display:flex;gap:10px;"><button type="button" class="btn btn-primary" onclick="verifyAdminAccessCredentialsCode()">🔓 Unlock Admin Tool Panel</button><button type="button" class="btn btn-danger" onclick="closeAdminConfigurationModal()">Close</button></div>
+                </div>
+
+                <div id="admin-controls-area" style="display:none;">
+                    <div style="background:#f8fafc;padding:15px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:15px;">
+                        <div class="grid-4">
+                            <div class="form-group"><label>Fiscal Session Value</label><input id="admin-fy-text" type="text"></div>
+                            <div class="form-group"><label>System Write / Ledger Lock Status</label><select id="admin-lock-select"><option value="UNLOCKED">UNLOCKED (Read, Write & Manual Override Updates)</option><option value="LOCKED">LOCKED (Strict Read & Print Reports)</option></select></div>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="applySystemAdminConfigurationsDirectives()">⚙️ Execute Operations Config</button>
+                    </div>
+
+                    <div style="padding:15px;border:1px solid #fecaca;border-radius:6px;background:#fff7f7;margin-bottom:15px;">
+                        <h4 style="color:var(--danger);margin-bottom:10px;">💥 Selective Database Compartment Deletions</h4>
+                        <div class="admin-checkbox-group">
+                            <label><input type="checkbox" id="wipe-purchase-cb"> Wipe All Purchases Ledger Registers Logs</label>
+                            <label><input type="checkbox" id="wipe-supplier-cb"> Wipe All Registered Vendor Profiles Directories</label>
+                            <label><input type="checkbox" id="wipe-items-cb"> Wipe Cached Items Autocomplete Catalogs</label>
+                        </div>
+                        <div style="font-size:12px;color:#7f1d1d;">These selections permanently clear the selected database section after confirmation.</div>
+                    </div>
+
+                    <div style="padding:15px;border:1px solid #f59e0b;border-radius:6px;background:#fffbeb;margin-bottom:15px;">
+                        <div style="font-weight:bold;color:#92400e;margin-bottom:8px;">💾 Backup Restore</div>
+                        <div style="font-size:13px;color:#4b5563;margin-bottom:10px;">Select one previously downloaded .dat backup. Restore will clear the selected backup fiscal-year database and replace it with the backup data.</div>
+                        <input type="file" id="admin-backup-restore-input" accept=".dat" style="display:none" onchange="handleAdminBackupRestoreSelection(this)">
+                        <button type="button" class="btn btn-primary" onclick="openAdminBackupRestoreDialog()">📤 Select Backup & Restore</button>
+                    </div>
+
+                    <div style="padding:15px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;margin-bottom:15px;">
+                        <h4 style="color:#334155;margin-bottom:10px;">🔐 Modify Master Security Authentication Passkey</h4>
+                        <div class="grid-4">
+                            <div class="form-group"><label>Current Password</label><input id="pw-old" type="password"></div>
+                            <div class="form-group"><label>New Password</label><input id="pw-new" type="password"></div>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="commitModifiedAdminAccessKey()">🔑 Update Access Password Key</button>
+                    </div>
+                    <button type="button" class="btn btn-danger" onclick="closeAdminConfigurationModal()">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="print-engine-output" class="print-only"></div>
+<script>
+"use strict";
+let FISCAL_YEAR=localStorage.getItem("sm_fiscal_year")||"2083-2084";
+let SYSTEM_LOCK=localStorage.getItem("sm_system_lock")||"UNLOCKED";
+let ADMIN_PASSWORD=localStorage.getItem("sm_admin_pw")||"MANNAT@123";
+let db=null;
+let cachedMasterItemsRegistry=[];
+
+window.addEventListener("DOMContentLoaded",()=>{
+  document.getElementById("top-display-fy").innerText=FISCAL_YEAR;
+  enforceOperationalEnvironmentLocks();
+  initializeDynamicStorageDatabaseEngine();
+
+  const supplierMasterSearch=document.getElementById("supplier-master-search-input");
+  if(supplierMasterSearch){
+    supplierMasterSearch.addEventListener("input",filterSupplierMasterDirectory);
+  }
+});
+
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey&&e.key.toLowerCase()==="l"){
+    e.preventDefault();
+    const h=ev=>{if(ev.key.toLowerCase()==="a"){ev.preventDefault();displayAdminConfigurationModal();document.removeEventListener("keydown",h);}};
+    document.addEventListener("keydown",h);
+  }
+});
+
+function enforceOperationalEnvironmentLocks(){
+  document.getElementById("top-display-fy").innerText=FISCAL_YEAR;
+  const b=document.getElementById("system-lock-badge");
+  b.innerText=`SYSTEM: ${SYSTEM_LOCK}`;
+  const locked=SYSTEM_LOCK==="LOCKED";
+  ["btn-save-purchase","btn-clear-form","add-more-rows-btn"].forEach(id=>{const x=document.getElementById(id);if(x)x.disabled=locked;});
+  document.querySelectorAll(".material-entry-row input").forEach(x=>x.readOnly=locked);
+  document.querySelectorAll(".delete-row-btn").forEach(x=>x.disabled=locked);
+  b.className=locked?"status-badge badge-locked":"status-badge badge-unlocked";
+}
+
+function createFiscalDatabase(name){return new Promise((resolve,reject)=>{
+  const r=indexedDB.open(name,1);
+  r.onupgradeneeded=e=>{const d=e.target.result;
+    if(!d.objectStoreNames.contains("suppliers"))d.createObjectStore("suppliers",{keyPath:"id",autoIncrement:true});
+    if(!d.objectStoreNames.contains("items_master"))d.createObjectStore("items_master",{keyPath:"name"});
+    if(!d.objectStoreNames.contains("purchases"))d.createObjectStore("purchases",{keyPath:"grNo"});
+  };
+  r.onsuccess=e=>resolve(e.target.result);r.onerror=()=>reject(r.error);
+});}
+
+function initializeDynamicStorageDatabaseEngine(){
+  createFiscalDatabase(`SugarMillDBStore_${FISCAL_YEAR}`).then(d=>{db=d;verifyDatabaseIntegrityHealthStatus();}).catch(()=>showRecoveryScreen());
+}
+function showRecoveryScreen(){document.getElementById("main-application-frame").style.display="none";document.getElementById("recovery-screen").style.display="block";}
+function verifyDatabaseIntegrityHealthStatus(){try{const tx=db.transaction("suppliers","readonly");tx.objectStore("suppliers").count().onsuccess=()=>{document.getElementById("recovery-screen").style.display="none";document.getElementById("main-application-frame").style.display="block";populateSuppliersControlsDropdowns();refreshCachedItemsIndex();resetPurchaseEntryFormLayout();};tx.onerror=showRecoveryScreen;}catch(e){showRecoveryScreen();}}
+
+function calculateNepaliBSSambantDate(){
+  const v=document.getElementById("p-date-ad").value;if(!v)return;
+  const [y,m,d]=v.split("-").map(Number);let by=y+56,bm=m+8,bd=d+15;
+  if(bd>30){bd-=30;bm++;}if(bm>12){bm-=12;by++;}
+  const p=n=>String(n).padStart(2,"0");document.getElementById("p-date-bs").value=`${by}-${p(bm)}-${p(bd)}`;
+}
+function switchActiveTab(id){document.querySelectorAll(".tab-btn").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".tab-content").forEach(x=>x.classList.remove("active"));const b=document.querySelector(`.tab-btn[onclick="switchActiveTab('${id}')"]`);if(b)b.classList.add("active");document.getElementById(id).classList.add("active");if(id==="supplier-tab")reloadSupplierProfilesDirectoryTable();if(id==="report-tab")populateSuppliersControlsDropdowns();}
+
+function normalizeSupplierNameForDuplicateCheck(name){
+  return String(name||"")
+    .normalize("NFKC")
+    .toLocaleUpperCase()
+    .replace(/[\\s\\p{P}\\p{S}]+/gu,"");
+}
+
+function filterSupplierMasterDirectory(){
+  const input=document.getElementById("supplier-master-search-input");
+  const q=String(input?.value||"").trim().toLocaleUpperCase();
+  document.querySelectorAll("#suppliers-list-tbody tr").forEach(row=>{
+    const supplierName=String(row.dataset.supplierName||"").toLocaleUpperCase();
+    row.style.display=!q || supplierName.includes(q) ? "" : "none";
+  });
+}
+
+async function commitSupplierProfileToStorage(){
+  if(!db)return alert("Database is not ready.");
+  const name=document.getElementById("s-name").value.trim();
+  if(!name)return alert("Supplier/Company Name cannot be empty.");
+
+  const normalizedName=normalizeSupplierNameForDuplicateCheck(name);
+  if(!normalizedName)return alert("Supplier/Company Name cannot be empty.");
+
+  const store=db.transaction("suppliers","readonly").objectStore("suppliers");
+  const allRequest=store.getAll();
+  allRequest.onsuccess=()=>{
+    const duplicate=(allRequest.result||[]).find(v=>normalizeSupplierNameForDuplicateCheck(v.name)===normalizedName);
+    if(duplicate){
+      alert(`Supplier already exists.\\n\\nSaved Name: ${duplicate.name}\\n\\nDuplicate spelling/space/case entry is not allowed.`);
+      return;
+    }
+
+    const data={
+      name,
+      pan:document.getElementById("s-pan").value.trim(),
+      phone:document.getElementById("s-phone").value.trim(),
+      address:document.getElementById("s-address").value.trim()
+    };
+
+    const tx=db.transaction("suppliers","readwrite");
+    tx.objectStore("suppliers").add(data);
+    tx.oncomplete=()=>{
+      ["s-name","s-pan","s-phone","s-address"].forEach(id=>document.getElementById(id).value="");
+      reloadSupplierProfilesDirectoryTable();
+      populateSuppliersControlsDropdowns();
+      alert("Supplier profile saved successfully.");
+    };
+    tx.onerror=()=>alert("Supplier could not be saved.");
+  };
+  allRequest.onerror=()=>alert("Supplier list could not be checked.");
+}
+
+function deleteSupplierProfileById(id,name){
+  if(!db)return alert("Database is not ready.");
+
+  const purchaseRequest=db.transaction("purchases","readonly").objectStore("purchases").getAll();
+  purchaseRequest.onsuccess=()=>{
+    const targetName=normalizeSupplierNameForDuplicateCheck(name);
+    const usedInPurchase=(purchaseRequest.result||[]).some(v=>
+      normalizeSupplierNameForDuplicateCheck(v.supplier)===targetName
+    );
+
+    if(usedInPurchase){
+      alert(`Supplier cannot be deleted.\\n\\n"${name}" is already used in Purchase Entry.`);
+      return;
+    }
+
+    if(!confirm(`Delete supplier "${name}"?\\n\\nThis supplier has no purchase entry.`))return;
+
+    const tx=db.transaction("suppliers","readwrite");
+    tx.objectStore("suppliers").delete(Number(id));
+    tx.oncomplete=()=>{
+      reloadSupplierProfilesDirectoryTable();
+      populateSuppliersControlsDropdowns();
+      alert("Supplier deleted successfully.");
+    };
+    tx.onerror=()=>alert("Supplier could not be deleted.");
+  };
+  purchaseRequest.onerror=()=>alert("Purchase records could not be checked. Supplier was not deleted.");
+}
+
+function reloadSupplierProfilesDirectoryTable(){
+  if(!db)return;
+  const t=document.getElementById("suppliers-list-tbody");
+  if(!t)return;
+  t.innerHTML="";
+
+  db.transaction("suppliers","readonly").objectStore("suppliers").openCursor().onsuccess=e=>{
+    const c=e.target.result;
+    if(c){
+      const v=c.value;
+      const r=document.createElement("tr");
+      r.dataset.supplierName=String(v.name||"");
+      r.innerHTML=`<td>VNDR-${v.id}</td><td>${escapeHtml(v.name)}</td><td>${escapeHtml(v.pan||"N/A")}</td><td>${escapeHtml(v.phone||"N/A")}</td><td>${escapeHtml(v.address||"N/A")}</td><td><button type="button" class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick='deleteSupplierProfileById(${Number(v.id)},${JSON.stringify(String(v.name||""))})'>🗑️ Delete</button></td>`;
+      t.appendChild(r);
+      c.continue();
+    }else{
+      filterSupplierMasterDirectory();
+    }
+  };
+}
+function setupSupplierSearchControl(selectId, placeholder){
+  const sel=document.getElementById(selectId);
+  if(!sel) return;
+
+  const prefix=selectId==="p-supplier-select" ? "p" : "r";
+  const input=document.getElementById(prefix+"-supplier-search-input");
+  const list=document.getElementById(prefix+"-supplier-search-list");
+  if(!input || !list) return;
+
+  const render=()=>{
+    const q=input.value.trim().toLocaleUpperCase();
+    list.innerHTML="";
+    const names=Array.from(sel.options).filter(o=>o.value).map(o=>o.value);
+    const matches=q ? names.filter(n=>String(n).toLocaleUpperCase().includes(q)) : names;
+
+    if(!matches.length){
+      list.innerHTML='<div class="supplier-search-empty">No supplier found</div>';
+      list.style.display="block";
+      return;
+    }
+
+    matches.slice(0,50).forEach(name=>{
+      const item=document.createElement("div");
+      item.className="supplier-search-item";
+      item.textContent=name;
+      item.onclick=()=>{
+        sel.value=name;
+        input.value=name;
+        list.style.display="none";
+        sel.dispatchEvent(new Event("change",{bubbles:true}));
+      };
+      list.appendChild(item);
+    });
+    list.style.display="block";
+  };
+
+  input.placeholder=placeholder;
+  input.oninput=render;
+  input.onfocus=render;
+  input.onkeydown=e=>{
+    if(e.key==="Escape"){list.style.display="none";return;}
+    if(e.key==="Enter"){
+      const first=list.querySelector(".supplier-search-item");
+      if(first){e.preventDefault();first.click();}
+    }
+  };
+
+  // Do not create or display any native combo box.
+  sel.style.display="none";
+
+  if(!input.dataset.outsideHandler){
+    document.addEventListener("click",e=>{
+      if(!input.parentElement.contains(e.target)) list.style.display="none";
+    });
+    input.dataset.outsideHandler="1";
+  }
+}
+
+function setSupplierSearchValue(selectId,value){
+  const sel=document.getElementById(selectId);
+  if(!sel) return;
+  sel.value=value||"";
+  const prefix=selectId==="p-supplier-select" ? "p" : "r";
+  const input=document.getElementById(prefix+"-supplier-search-input");
+  if(input) input.value=value||"";
+}
+
+function populateSuppliersControlsDropdowns(){
+  if(!db)return;
+  const ps=document.getElementById("p-supplier-select"),rs=document.getElementById("r-supplier-select");
+  if(!ps||!rs)return;
+
+  const oldP=ps.value,oldR=rs.value;
+  ps.innerHTML='<option value="">-- Choose Supplier --</option>';
+  rs.innerHTML='<option value="">-- Choose Corporate Supplier --</option>';
+
+  db.transaction("suppliers","readonly").objectStore("suppliers").openCursor().onsuccess=e=>{
+    const c=e.target.result;
+    if(c){
+      [ps,rs].forEach(s=>{
+        const o=document.createElement("option");
+        o.value=c.value.name;
+        o.textContent=c.value.name;
+        s.appendChild(o);
+      });
+      c.continue();
+    } else {
+      setupSupplierSearchControl("p-supplier-select","Type supplier name...");
+      setupSupplierSearchControl("r-supplier-select","Type supplier name...");
+      setSupplierSearchValue("p-supplier-select",oldP);
+      setSupplierSearchValue("r-supplier-select",oldR);
+    }
+  };
+}
+
+function refreshCachedItemsIndex(){if(!db)return;cachedMasterItemsRegistry=[];db.transaction("items_master","readonly").objectStore("items_master").openCursor().onsuccess=e=>{const c=e.target.result;if(c){cachedMasterItemsRegistry.push(c.value);c.continue();}};}
+
+function generateBlankItemGridRows(n=5){const t=document.getElementById("purchase-tbody");for(let i=0;i<n;i++){const r=document.createElement("tr");r.className="material-entry-row";const ro=SYSTEM_LOCK==="LOCKED"?"readonly":"";r.innerHTML=`<td><div class="autocomplete-wrapper"><input type="text" class="cell-item-name" placeholder="Material name" oninput="handleCellAutocompleteSearch(this)" ${ro}><div class="autocomplete-items" style="display:none"></div></div></td><td><input type="number" class="cell-qty1" value="0" min="0" step="any" oninput="processRowFinancialsCalculations(this)" ${ro}></td><td><input type="text" class="cell-unit1" placeholder="Bandal/Pcs" ${ro}></td><td><input type="number" class="cell-qty2" value="0" min="0" step="any" oninput="processRowFinancialsCalculations(this)" ${ro}></td><td><input type="text" class="cell-unit2" placeholder="Qtl/Kg" ${ro}></td><td><input type="number" class="cell-rate" value="0" min="0" step="any" oninput="flagManualRateOverride(this)" ${ro}></td><td><input type="number" class="cell-amount" value="0" min="0" step="any" oninput="processRowFinancialsCalculations(this)" ${ro}></td><td><button type="button" class="delete-row-btn" onclick="wipeRowFromExcelGrid(this)" ${SYSTEM_LOCK==="LOCKED"?"disabled":""}>❌</button></td>`;t.appendChild(r);}}
+function wipeRowFromExcelGrid(b){b.closest("tr")?.remove();tallyExcelGridTotalsSum();}
+function handleCellAutocompleteSearch(input){const q=input.value.trim().toUpperCase(),m=input.nextElementSibling;m.innerHTML="";if(!q){m.style.display="none";return;}const hits=cachedMasterItemsRegistry.filter(x=>String(x.name||"").toUpperCase().startsWith(q)).slice(0,20);if(!hits.length){m.style.display="none";return;}m.style.display="block";hits.forEach(it=>{const d=document.createElement("div");d.innerHTML=`<b>${escapeHtml(it.name)}</b> <small>(${escapeHtml(it.u1||"")}/${escapeHtml(it.u2||"")})</small>`;d.onclick=()=>{const r=input.closest("tr");input.value=it.name;r.querySelector(".cell-unit1").value=it.u1||"";r.querySelector(".cell-unit2").value=it.u2||"";m.style.display="none";};m.appendChild(d);});}
+document.addEventListener("click",e=>{if(!e.target.closest(".autocomplete-wrapper"))document.querySelectorAll(".autocomplete-items").forEach(x=>x.style.display="none");});
+function flagManualRateOverride(i){i.dataset.overrideActive="true";const r=i.closest("tr"),rate=Number(i.value)||0,q2=Number(r.querySelector(".cell-qty2").value)||0,q1=Number(r.querySelector(".cell-qty1").value)||0;r.querySelector(".cell-amount").value=((q2||q1)*rate).toFixed(2);tallyExcelGridTotalsSum();}
+function processRowFinancialsCalculations(el){const r=el.closest("tr"),q1=Number(r.querySelector(".cell-qty1").value)||0,q2=Number(r.querySelector(".cell-qty2").value)||0,a=Number(r.querySelector(".cell-amount").value)||0,rate=r.querySelector(".cell-rate");if(a>0&&!rate.dataset.overrideActive)rate.value=((a/(q2||q1))||0).toFixed(2);tallyExcelGridTotalsSum();}
+function tallyExcelGridTotalsSum(){let s=0;document.querySelectorAll(".material-entry-row").forEach(r=>s+=Number(r.querySelector(".cell-amount").value)||0);document.getElementById("p-total-amt").value=s.toFixed(2);calculateVoucherGrandTotals();}
+function calculateVoucherGrandTotals(){const n=id=>Number(document.getElementById(id).value)||0;document.getElementById("p-grand-total").value=(n("p-total-amt")+n("p-custom-amt")+n("p-trans-amt")+n("p-vat-amt")+n("p-other-amt")-n("p-discount-amt")).toFixed(2);}
+
+function saveActivePurchaseVoucher(){if(SYSTEM_LOCK==="LOCKED")return alert("System is LOCKED.");if(!db)return alert("Database is not ready.");const gr=document.getElementById("p-gr-no").value.trim();if(!gr)return alert("GR No. is required.");const materials=[];const items=[];document.querySelectorAll(".material-entry-row").forEach(r=>{const name=r.querySelector(".cell-item-name").value.trim(),amt=Number(r.querySelector(".cell-amount").value)||0;if(name){materials.push({name,q1:Number(r.querySelector(".cell-qty1").value)||0,u1:r.querySelector(".cell-unit1").value.trim(),q2:Number(r.querySelector(".cell-qty2").value)||0,u2:r.querySelector(".cell-unit2").value.trim(),rate:Number(r.querySelector(".cell-rate").value)||0,amt});items.push({name,u1:r.querySelector(".cell-unit1").value.trim(),u2:r.querySelector(".cell-unit2").value.trim()});}});if(!materials.length)return alert("At least one material row with item name is required.");const n=id=>Number(document.getElementById(id).value)||0;const obj={grNo:gr,supplier:document.getElementById("p-supplier-select").value,invoiceNo:document.getElementById("p-invoice-no").value.trim(),invoiceDate:document.getElementById("p-invoice-date").value,dateAD:document.getElementById("p-date-ad").value,dateBS:document.getElementById("p-date-bs").value.trim(),remarks:document.getElementById("p-remarks").value,totalAmt:n("p-total-amt"),customAmt:n("p-custom-amt"),transAmt:n("p-trans-amt"),vatAmt:n("p-vat-amt"),otherAmt:n("p-other-amt"),discountAmt:n("p-discount-amt"),grandTotal:n("p-grand-total"),materials};const tx=db.transaction(["purchases","items_master"],"readwrite");tx.objectStore("purchases").put(obj);items.forEach(x=>tx.objectStore("items_master").put(x));tx.oncomplete=()=>{alert(`Purchase voucher ${gr} saved successfully.`);refreshCachedItemsIndex();resetPurchaseEntryFormLayout();};tx.onerror=()=>alert("Purchase voucher could not be saved.");}
+function getNextPurchaseGRNumber(){
+  return new Promise((resolve)=>{
+    if(!db){resolve("GR-1");return;}
+    const req=db.transaction("purchases","readonly").objectStore("purchases").getAllKeys();
+    req.onsuccess=()=>{
+      let max=0;
+      (req.result||[]).forEach(k=>{
+        const m=String(k).match(/^(?:GR\s*-?)(\d+)$/i);
+        if(m)max=Math.max(max,Number(m[1])||0);
+      });
+      resolve(`GR-${max+1}`);
+    };
+    req.onerror=()=>resolve("GR-1");
+  });
+}
+async function resetPurchaseEntryFormLayout(){
+  if(!db)return;
+  ["p-invoice-no","p-remarks"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  ["p-total-amt","p-grand-total"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="0.00";});
+  ["p-custom-amt","p-trans-amt","p-vat-amt","p-other-amt","p-discount-amt"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="0";});
+  setSupplierSearchValue("p-supplier-select","");
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById("p-date-ad").value=today;
+  document.getElementById("p-invoice-date").value=today;
+  calculateNepaliBSSambantDate();
+  document.getElementById("purchase-tbody").innerHTML="";
+  generateBlankItemGridRows(5);
+  document.getElementById("p-gr-no").value=await getNextPurchaseGRNumber();
+}
+
+function lookupPurchaseVoucherRecord(){const gr=document.getElementById("p-gr-no").value.trim();if(!gr||!db)return;db.transaction("purchases","readonly").objectStore("purchases").get(gr).onsuccess=e=>{const v=e.target.result;if(!v)return alert(`GR ${gr} was not found.`);["supplier-select","invoice-no","invoice-date"].forEach(()=>{});setSupplierSearchValue("p-supplier-select",v.supplier||"");document.getElementById("p-invoice-no").value=v.invoiceNo||"";document.getElementById("p-invoice-date").value=v.invoiceDate||"";document.getElementById("p-date-ad").value=v.dateAD||"";document.getElementById("p-date-bs").value=v.dateBS||"";document.getElementById("p-remarks").value=v.remarks||"";document.getElementById("p-total-amt").value=(Number(v.totalAmt)||0).toFixed(2);["customAmt","transAmt","vatAmt","otherAmt","discountAmt"].forEach(k=>document.getElementById("p-"+({customAmt:"custom-amt",transAmt:"trans-amt",vatAmt:"vat-amt",otherAmt:"other-amt",discountAmt:"discount-amt"}[k])).value=v[k]||0);document.getElementById("p-grand-total").value=(Number(v.grandTotal)||0).toFixed(2);document.getElementById("purchase-tbody").innerHTML="";(v.materials||[]).forEach(m=>{generateBlankItemGridRows(1);const r=document.querySelector("#purchase-tbody tr:last-child");r.querySelector(".cell-item-name").value=m.name||"";r.querySelector(".cell-qty1").value=m.q1||0;r.querySelector(".cell-unit1").value=m.u1||"";r.querySelector(".cell-qty2").value=m.q2||0;r.querySelector(".cell-unit2").value=m.u2||"";r.querySelector(".cell-rate").value=m.rate||0;r.querySelector(".cell-amount").value=m.amt||0;});if((v.materials||[]).length<5)generateBlankItemGridRows(5-v.materials.length);enforceOperationalEnvironmentLocks();tallyExcelGridTotalsSum();};}
+
+function getCurrentGRPrintData(){
+  const items=[];
+  document.querySelectorAll('.material-entry-row').forEach(r=>{
+    const name=(r.querySelector('.cell-item-name')?.value||'').trim();
+    if(!name) return;
+    items.push({
+      name,
+      q1:r.querySelector('.cell-qty1')?.value||'0',
+      u1:r.querySelector('.cell-unit1')?.value||'',
+      q2:r.querySelector('.cell-qty2')?.value||'0',
+      u2:r.querySelector('.cell-unit2')?.value||'',
+      rate:r.querySelector('.cell-rate')?.value||'0',
+      amt:Number(r.querySelector('.cell-amount')?.value)||0
+    });
+  });
+  return {
+    gr:document.getElementById('p-gr-no').value.trim(),
+    supplier:document.getElementById('p-supplier-select').value||'',
+    invoice:document.getElementById('p-invoice-no').value.trim(),
+    invoiceDate:document.getElementById('p-invoice-date').value||'',
+    ad:document.getElementById('p-date-ad').value||'',
+    bs:document.getElementById('p-date-bs').value||'',
+    remarks:document.getElementById('p-remarks').value||'',
+    total:Number(document.getElementById('p-total-amt').value)||0,
+    custom:Number(document.getElementById('p-custom-amt').value)||0,
+    transport:Number(document.getElementById('p-trans-amt').value)||0,
+    vat:Number(document.getElementById('p-vat-amt').value)||0,
+    other:Number(document.getElementById('p-other-amt').value)||0,
+    discount:Number(document.getElementById('p-discount-amt').value)||0,
+    net:Number(document.getElementById('p-grand-total').value)||0,
+    items
+  };
+}
+function grPrintMarkup(v){
+  return `<div class="print-page">
+    <div class="print-company">
+      <h1>RAJAPUR SUGAR AND CHEMICAL INDUSTRIES PVT.LTD.</h1>
+      <p>Rajapur Municipality-05, Dist. Bardiya, Nepal</p>
+    </div>
+    <div class="gr-title">Goods Receipt No: ${escapeHtml(v.gr||'')}</div>
+    <div class="print-meta">
+      <div class="wide">PARTY: ${escapeHtml(v.supplier||'')}</div>
+      <div>INVOICE NO: ${escapeHtml(v.invoice||'')}</div>
+      <div>ENG DATE: ${escapeHtml(v.ad||'')}</div>
+      <div>PART/BILL DATE: ${escapeHtml(v.invoiceDate||v.ad||'')}</div>
+      <div>NEP DATE: ${escapeHtml(v.bs||'')}</div>
+    </div>
+    <table class="print-table">
+      <colgroup><col style="width:7%"><col style="width:31%"><col style="width:18%"><col style="width:11%"><col style="width:11%"><col style="width:10%"><col style="width:12%"></colgroup>
+      <thead><tr><th>Sr.No</th><th>Item Name</th><th>Pkg/Qty</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Amount</th></tr></thead>
+      <tbody>${v.items.map((x,i)=>`<tr><td class="num">${i+1}</td><td>${escapeHtml(x.name)}</td><td class="num">${escapeHtml(x.q1)} ${escapeHtml(x.u1)}</td><td class="num">${Number(x.q2)>0?escapeHtml(x.q2):'N/A'}</td><td>${escapeHtml(x.u2||'N/A')}</td><td class="num">${Number(x.rate||0).toFixed(2)}</td><td class="num">${x.amt.toFixed(2)}</td></tr>`).join('')}</tbody>
+    </table>
+    <div class="gr-bottom"><div class="gr-summary">
+      <div class="gr-summary-row"><span>TOTAL AMT:</span><span>${v.total.toFixed(2)}</span></div>
+      <div class="gr-summary-row"><span>CUSTOM AMT:</span><span>${v.custom.toFixed(2)}</span></div>
+      <div class="gr-summary-row"><span>TRANS AMT:</span><span>${v.transport.toFixed(2)}</span></div>
+      <div class="gr-summary-row"><span>VAT AMT:</span><span>${v.vat.toFixed(2)}</span></div>
+      <div class="gr-summary-row"><span>OTHER EXP:</span><span>${v.other.toFixed(2)}</span></div>
+      <div class="gr-summary-row"><span>DISCOUNT:</span><span>${v.discount.toFixed(2)}</span></div>
+      <div class="gr-summary-row net"><span>GRAND TOTAL:</span><span>${v.net.toFixed(2)}</span></div>
+    </div></div>
+    <div class="print-remarks">${v.remarks?`REMARKS: ${escapeHtml(v.remarks)}`:''}</div>
+    <div class="print-signatures"><div>STORE INCHARGE</div><div>UNIT HEAD (G.M.)</div></div>
+  </div>`;
+}
+function openReportPrintWindow(reportHtml,title){
+  const w=window.open("","_blank","width=900,height=1100");
+  if(!w){alert("Print window was blocked by the browser. Please allow pop-ups for this ERP and try again.");return;}
+  const css=`<style>
+    @page{size:A4 portrait;margin:8mm}
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif}
+    .print-page,.party-print-page{width:194mm;min-height:281mm;margin:0 auto;padding:0;position:relative;overflow:hidden;page-break-after:always;break-after:page}
+    .print-page:last-child,.party-print-page:last-child{page-break-after:auto;break-after:auto}
+    .print-company{text-align:center;margin-bottom:5mm}.print-company h1{font-size:17px;margin:0 0 2px;font-weight:700}.print-company p{font-size:10px;margin:0}
+    .gr-title{text-align:center;font-size:14px;font-weight:700;margin:3mm 0 4mm}
+    .print-meta{width:100%;display:grid;grid-template-columns:1fr 1fr 1fr;gap:2mm 7mm;font-size:10.5px;font-weight:700;margin-bottom:4mm}.print-meta .wide{grid-column:1 / 3}
+    .print-table,.party-report-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0}.print-table th,.print-table td,.party-report-table th,.party-report-table td{border:1px solid #222;padding:4px;font-size:9.5px;vertical-align:middle}.print-table th,.party-report-table th{text-align:center;font-weight:700}.print-table td.num,.party-report-table td.num{text-align:right}
+    .gr-bottom{display:flex;justify-content:flex-end;margin-top:2mm}.gr-summary{width:58%;border-top:1px solid #222;border-bottom:1px solid #222}.gr-summary-row{display:grid;grid-template-columns:1fr 38mm;padding:1.3mm 1mm;font-size:10px}.gr-summary-row span:last-child{text-align:right;font-weight:700}.gr-summary-row.net{border-top:1px solid #222;font-size:11px;font-weight:700}
+    .print-remarks{margin-top:3mm;font-size:9.5px;min-height:10mm}.print-signatures{position:absolute;left:0;right:0;bottom:7mm;display:flex;justify-content:space-between;font-size:10px;font-weight:700}.print-signatures>div{width:38%;text-align:center;border-top:1px solid #222;padding-top:2mm}
+    .party-report-header{text-align:center;margin-bottom:3mm}.party-report-header h1{font-size:16px;margin:0}.party-report-header h2{font-size:13px;margin:1mm 0}.party-report-header h3{font-size:11px;margin:0;font-weight:700}.party-meta{display:grid;grid-template-columns:1fr 1fr;gap:1.5mm 8mm;font-size:9.5px;margin-bottom:3mm}.party-summary-wrap{display:flex;justify-content:flex-end;margin-top:3mm}.party-summary{width:43%;border:1px solid #222;border-collapse:collapse}.party-summary td{border:1px solid #222;padding:1.2mm 2mm;font-size:9.5px}.party-summary td:last-child{text-align:right;font-weight:700}.party-summary .net-row td{font-weight:700;font-size:10.5px}.party-footer-note{position:absolute;left:0;right:0;bottom:2mm;text-align:center;font-size:8px}.party-overall-summary{display:flex;justify-content:flex-end;margin-top:3mm}.party-overall-title{font-size:13px;font-weight:700;text-align:center;margin:3mm 0 1mm}.party-overall-summary .party-summary{width:43%}.party-signatures{position:absolute;left:0;right:0;bottom:7mm;display:flex;justify-content:space-between;font-size:10px;font-weight:700}.party-signatures>div{width:38%;text-align:center;border-top:1px solid #222;padding-top:2mm}
+    @media print{body{width:210mm}.print-page,.party-print-page{margin:0 auto}}
+  </style>`;
+  w.document.open();
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title||"Print")}</title>${css}</head><body>${reportHtml}</body></html>`);
+  w.document.close();
+  setTimeout(()=>{w.focus();w.print();},350);
+}
+function buildAndPrintA4GRSlip(){
+  const v=getCurrentGRPrintData();
+  if(!v.items.length){
+    const gr=v.gr;
+    if(!gr||!db)return alert('There are no material rows to print.');
+    db.transaction("purchases","readonly").objectStore("purchases").get(gr).onsuccess=e=>{
+      const saved=e.target.result;
+      if(!saved)return alert(`GR ${gr} was not found.`);
+      const rows=(saved.materials||[]).map(m=>({name:m.name||"",q1:m.q1||0,u1:m.u1||"",q2:m.q2||0,u2:m.u2||"",rate:m.rate||0,amt:Number(m.amt)||0}));
+      if(!rows.length)return alert('There are no material rows to print.');
+      openReportPrintWindow(grPrintMarkup({gr:saved.grNo||gr,supplier:saved.supplier||"",invoice:saved.invoiceNo||"",invoiceDate:saved.invoiceDate||"",ad:saved.dateAD||"",bs:saved.dateBS||"",remarks:saved.remarks||"",total:Number(saved.totalAmt)||0,custom:Number(saved.customAmt)||0,transport:Number(saved.transAmt)||0,vat:Number(saved.vatAmt)||0,other:Number(saved.otherAmt)||0,discount:Number(saved.discountAmt)||0,net:Number(saved.grandTotal)||0,items:rows}),`GR ${gr}`);
+    };
+    return;
+  }
+  openReportPrintWindow(grPrintMarkup(v),`GR ${v.gr||"Purchase"}`);
+}
+function partyReportPageMarkup(v, totals, dateFrom, dateTo, isSummaryPage=false){
+  const itemRows=(v.materials||[]).map((m,i)=>`<tr><td class="num">${i+1}</td><td>${escapeHtml(v.dateBS||'')}</td><td>${escapeHtml(m.name||'')}</td><td class="num">${Number(m.q1||0).toString()}</td><td>${escapeHtml(m.u1||'')}</td><td class="num">${Number(m.q2||0).toString()}</td><td>${escapeHtml(m.u2||'')}</td><td class="num">₹${Number(m.rate||0).toFixed(2)}</td><td class="num">₹${Number(m.amt||0).toFixed(2)}</td></tr>`).join('');
+  return `<div class="party-section">
+    <div class="party-gr-meta"><div><b>GR No.:</b> ${escapeHtml(v.grNo||'')}</div><div><b>Invoice No.:</b> ${escapeHtml(v.invoiceNo||'')}</div></div>
+    <table class="party-report-table"><colgroup><col style="width:6%"><col style="width:13%"><col style="width:23%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:12%"><col style="width:14%"></colgroup><thead><tr><th>S.N.</th><th>Miti</th><th>Item Name</th><th>Qty</th><th>UOM</th><th>Qty II</th><th>UOM II</th><th>Rate</th><th>Amount</th></tr></thead><tbody>${itemRows}</tbody>
+    <tfoot><tr><td colspan="7"></td><td class="label-right"><b>Total Amt:</b></td><td class="num"><b>₹${Number(v.totalAmt||0).toFixed(2)}</b></td></tr><tr><td colspan="7"></td><td class="label-right">VAT Amt:</td><td class="num">₹${Number(v.vatAmt||0).toFixed(2)}</td></tr><tr><td colspan="7"></td><td class="label-right">Custom Amt:</td><td class="num">₹${Number(v.customAmt||0).toFixed(2)}</td></tr><tr><td colspan="7"></td><td class="label-right">Transport Amt:</td><td class="num">₹${Number(v.transAmt||0).toFixed(2)}</td></tr><tr><td colspan="7"></td><td class="label-right">Other Amt:</td><td class="num">₹${Number(v.otherAmt||0).toFixed(2)}</td></tr><tr><td colspan="7"></td><td class="label-right">Discount Amt:</td><td class="num">₹${Number(v.discountAmt||0).toFixed(2)}</td></tr><tr class="net-row"><td colspan="7"></td><td class="label-right"><b>NET AMT:</b></td><td class="num"><b>₹${Number(v.grandTotal||0).toFixed(2)}</b></td></tr></tfoot></table>
+  </div>`;
+}
+function partyOverallSummaryMarkup(totals){
+  return `<div class="party-overall-summary"><div class="party-overall-title">SUMMARY</div><table class="party-summary"><tr><td>Total Amt:</td><td>₹${Number(totals.base||0).toFixed(2)}</td></tr><tr><td>VAT Amt:</td><td>₹${Number(totals.vat||0).toFixed(2)}</td></tr><tr><td>Custom Amt:</td><td>₹${Number(totals.custom||0).toFixed(2)}</td></tr><tr><td>Transport Amt:</td><td>₹${Number(totals.transport||0).toFixed(2)}</td></tr><tr><td>Other Amt:</td><td>₹${Number(totals.other||0).toFixed(2)}</td></tr><tr><td>Discount Amt:</td><td>₹${Number(totals.discount||0).toFixed(2)}</td></tr><tr class="net-row"><td>NET AMT:</td><td>₹${Number(totals.net||0).toFixed(2)}</td></tr></table></div>`;
+}
+function compilePartyWiseStatementLedger(){
+  if(!db)return alert("Database is not ready.");
+  const vendor=(document.getElementById("r-supplier-search-input")?.value||document.getElementById("r-supplier-select")?.value||"").trim();
+  if(!vendor)return alert("Please select a supplier first.");
+  const from=(document.getElementById("r-from-date")?.value||"").trim();
+  const to=(document.getElementById("r-to-date")?.value||"").trim();
+  const req=db.transaction("purchases","readonly").objectStore("purchases").getAll();
+  req.onsuccess=()=>{
+    let records=(req.result||[]).filter(v=>String(v.supplier||"").toUpperCase()===vendor.toUpperCase());
+    if(from)records=records.filter(v=>!v.dateBS||String(v.dateBS)>=from);
+    if(to)records=records.filter(v=>!v.dateBS||String(v.dateBS)<=to);
+    records.sort((a,b)=>String(a.dateBS||a.dateAD||"").localeCompare(String(b.dateBS||b.dateAD||"")) || String(a.grNo||"").localeCompare(String(b.grNo||""),undefined,{numeric:true}));
+    renderLedgerCompilationMarkupViews(vendor,records,from,to);
+  };
+  req.onerror=()=>alert("Could not read purchase ledger.");
+}
+function renderLedgerCompilationMarkupViews(vendor,records,from="",to=""){
+  const s=document.getElementById('report-screen-preview');
+  if(!records.length){s.innerHTML=`<p style="text-align:center;padding:40px;color:var(--danger);font-weight:bold">No transaction records found for ${escapeHtml(vendor)} in FY ${escapeHtml(FISCAL_YEAR)}.</p>`;return;}
+  let totals={base:0,vat:0,custom:0,transport:0,other:0,discount:0,net:0};
+  records.forEach(v=>{totals.base+=Number(v.totalAmt)||0;totals.vat+=Number(v.vatAmt)||0;totals.custom+=Number(v.customAmt)||0;totals.transport+=Number(v.transAmt)||0;totals.other+=Number(v.otherAmt)||0;totals.discount+=Number(v.discountAmt)||0;totals.net+=Number(v.grandTotal)||0;});
+  const sections=records.map(v=>partyReportPageMarkup(v,null,from,to)).join('');
+  const h=`<div class="party-report-container">
+    <div class="party-report-header"><h1>RAJAPUR SUGAR AND CHEMICAL INDUSTRIES PVT.LTD.</h1><h2>PARTY WISE ACCOUNT LEDGER STATEMENT</h2><h3>FY: ${escapeHtml(FISCAL_YEAR)}</h3></div>
+    <div class="party-meta"><div><b>Supplier:</b> ${escapeHtml(vendor)}</div><div><b>Miti:</b> ${escapeHtml(from)} TO ${escapeHtml(to)}</div></div>
+    ${sections}
+    ${partyOverallSummaryMarkup(totals)}
+  </div>`;
+  s.innerHTML=h;
+  s.dataset.reportFrom=from;
+  s.dataset.reportTo=to;
+  s.dataset.reportSupplier=vendor;
+}
+
+function buildExcelHtml(title,body){return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(title)}</title><style>@page{size:A4 portrait;margin:8mm}body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#000;margin:0}.company{text-align:center}.company h1{font-size:16px;margin:0}.company p{font-size:9px;margin:2px 0}.title{text-align:center;font-size:13px;font-weight:bold;margin:5px 0}.meta{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:5px 0;font-size:10px;font-weight:bold}.meta div{padding:3px 5px;border:1px solid #000}table{width:100%;border-collapse:collapse;margin:5px 0 10px;table-layout:fixed}th,td{border:1px solid #000!important;padding:4px}th{text-align:center;background:#fff!important;font-weight:bold}.num,.right{text-align:right!important}.label-right{text-align:right!important;font-weight:normal}.summary-wrap{display:flex;justify-content:flex-end}.summary-table{width:43%;margin-left:auto}.summary-table td:last-child{text-align:right;font-weight:bold}.net{font-weight:bold;font-size:12px}.party-print-page{margin-bottom:10px}.party-report-header{text-align:center}.party-report-header h1{font-size:16px;margin:0}.party-report-header h2{font-size:13px;margin:2px 0}.party-report-header h3{font-size:11px;margin:2px 0}.party-meta{display:grid;grid-template-columns:1fr 1fr;margin:5px 0;font-size:10px;font-weight:bold}.party-meta div{padding:3px 5px}.party-gr-meta{display:grid;grid-template-columns:1fr 1fr;font-size:10px;font-weight:bold;margin:4px 0 0}.party-gr-meta div{padding:3px 5px}.party-report-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:4px 0 0}.party-report-table th,.party-report-table td{border:1px solid #000!important;padding:3px}.party-report-table th{text-align:center}.party-report-table tfoot td{border:1px solid #000!important}.party-report-table .label-right{text-align:right!important}.party-summary-wrap{display:flex;justify-content:flex-end}.party-summary{width:43%;margin-left:auto;border-collapse:collapse}.party-summary td{border:1px solid #000;padding:4px}.party-summary td:last-child{text-align:right;font-weight:bold}.party-overall-summary{margin-top:8px}.party-overall-title{font-size:14px;font-weight:bold;text-align:center;margin:8px 0 3px}.party-overall-summary .party-summary{width:43%;margin-left:auto}.party-overall-summary .party-summary td{border:1px solid #000;padding:4px}.party-overall-summary .party-summary td:last-child{text-align:right;font-weight:bold}.party-overall-summary .net-row td{font-weight:bold}.party-section{margin-bottom:8px}.page-break{page-break-after:always}</style></head><body>${body}</body></html>`;}
+function openExcelCompatibleFile(filename,html){try{const blob=new Blob(['\ufeff',html],{type:'application/vnd.ms-excel;charset=utf-8'});if(!blob.size)return alert('Excel file could not be created.');const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}catch(err){console.error(err);alert('Excel export failed: '+err.message);}}
+function exportCurrentGRToExcel(){
+  const v=getCurrentGRPrintData(); if(!v.items.length)return alert('There are no material rows to export.');
+  const rows=v.items.map((x,i)=>`<tr><td class="num">${i+1}</td><td>${escapeHtml(x.name)}</td><td class="num">${escapeHtml(x.q1)} ${escapeHtml(x.u1)}</td><td class="num">${Number(x.q2)>0?escapeHtml(x.q2):'N/A'}</td><td>${escapeHtml(x.u2||'N/A')}</td><td class="num">${Number(x.rate||0).toFixed(2)}</td><td class="num">${Number(x.amt||0).toFixed(2)}</td></tr>`).join('');
+  const body=`<div class="company"><h1>RAJAPUR SUGAR AND CHEMICAL INDUSTRIES PVT.LTD.</h1><p>Rajapur Municipality-05, Dist. Bardiya, Nepal</p></div><div class="title">Goods Receipt No: ${escapeHtml(v.gr)}</div><div class="meta"><div>PARTY: ${escapeHtml(v.supplier)}</div><div>ENG DATE: ${escapeHtml(v.ad)}</div><div>GR NO: ${escapeHtml(v.gr)}</div><div>NEP DATE: ${escapeHtml(v.bs)}</div><div>INVOICE NO: ${escapeHtml(v.invoice)}</div><div>PART/BILL DATE: ${escapeHtml(v.invoiceDate||v.ad)}</div></div><table><thead><tr><th>Sr.No</th><th>Item Name</th><th>Pkg/Qty</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Amount</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="5"></td><td class="label-right"><b>Total Amt:</b></td><td class="num"><b>${Number(v.total||0).toFixed(2)}</b></td></tr><tr><td colspan="5"></td><td class="label-right">Custom Amt:</td><td class="num">${Number(v.custom||0).toFixed(2)}</td></tr><tr><td colspan="5"></td><td class="label-right">Trans Amt:</td><td class="num">${Number(v.transport||0).toFixed(2)}</td></tr><tr><td colspan="5"></td><td class="label-right">VAT Amt:</td><td class="num">${Number(v.vat||0).toFixed(2)}</td></tr><tr><td colspan="5"></td><td class="label-right">Other Exp:</td><td class="num">${Number(v.other||0).toFixed(2)}</td></tr><tr><td colspan="5"></td><td class="label-right">Discount:</td><td class="num">${Number(v.discount||0).toFixed(2)}</td></tr><tr><td colspan="5"></td><td class="label-right"><b>GRAND TOTAL:</b></td><td class="num net">${Number(v.net||0).toFixed(2)}</td></tr></tfoot></table>`;
+  openExcelCompatibleFile(`${v.gr||'GR'}_Purchase_Report.xls`,buildExcelHtml(`GR ${v.gr}`,body));
+}
+function exportCompiledLedgerToExcel(){
+  const src = document.getElementById('report-screen-preview');
+  if(!src.innerHTML.trim() || !src.querySelector('.party-report-container')) {
+    return alert('Build the report first.');
+  }
+  
+  // पूरी रिपोर्ट कंटेनर का क्लोन बनाएं
+  const page = src.querySelector('.party-report-container').cloneNode(true);
+
+  // पूरे कंटेनर में हर उस सेल को ढूंढें जिसमें तारीख हो सकती है
+  page.querySelectorAll('*').forEach(el => {
+    if (el.children.length === 0 && el.textContent) {
+      const text = el.textContent.trim();
+      
+      // RegEx: यह YYYY-MM-DD या DD/MM/YYYY दोनों रूपों को मैच करेगा
+      const match = text.match(/\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/) || text.match(/\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/);
+      
+      if (match) {
+        let yyyy, mm, dd;
+        
+        if (match.length === 4) {
+          yyyy = match[1];
+          mm = String(match[2]).padStart(2, '0');
+          dd = String(match[3]).padStart(2, '0');
+        } else {
+          dd = String(match[1]).padStart(2, '0');
+          mm = String(match[2]).padStart(2, '0');
+          yyyy = match[3];
+        }
+        
+        const finalNepaliDate = `${yyyy}/${mm}/${dd}`;
+        
+        // 🔥 एक्सेल की होशियारी बंद करने का असली तोड़:
+        // तारीख के आगे '&nbsp;' या कोई हिडन टेक्स्ट जोड़ना, या मसो फॉर्मेट को सख्त करना।
+        // यहाँ हम इनलाइन स्टाइल में मसो-नंबर-फॉर्मेट को एक स्ट्रिंग टेक्स्ट ('@') की तरह लॉक कर रहे हैं।
+        el.setAttribute('style', 'mso-number-format:"\\@"; white-space:nowrap;');
+        
+        // साथ ही एचटीएमएल के जरिए एक्सेल को सीधे टेक्स्ट वैल्यू भेजने के लिए सिंगल कोट का इस्तेमाल करें
+        el.innerHTML = `&#8203;${finalNepaliDate}`; // &#8203; एक गुप्त (Zero-Width) स्पेस है जो दिखाई नहीं देगा लेकिन एक्सेल को रोक देगा
+      }
+    }
+  });
+
+  // बदले हुए सेफ HTML डेटा के साथ एक्सेल जनरेट करें
+  openExcelCompatibleFile(
+    `${((document.getElementById('r-supplier-search-input')?.value)||'Supplier').replace(/[^a-z0-9]+/gi,'_')}_Supplier_Report.xls`,
+    buildExcelHtml('Supplier Wise Report', page.outerHTML)
+  );
+}
+
+function printCompiledLedgerStatement(){
+  const src=document.getElementById('report-screen-preview');
+  if(!src.innerHTML.trim()||!src.querySelector('.party-report-container'))return alert('Build the report first.');
+  const page=src.querySelector('.party-report-container').outerHTML;
+  openReportPrintWindow(page,`Supplier Wise Report - ${document.getElementById('r-supplier-search-input')?.value||'Supplier'}`);
+}
+
+function displayAdminConfigurationModal(){document.getElementById("adminModal").style.display="flex";document.getElementById("admin-auth-area").style.display="block";document.getElementById("admin-controls-area").style.display="none";document.getElementById("admin-password-input").value="";}
+function closeAdminConfigurationModal(){document.getElementById("adminModal").style.display="none";}
+function verifyAdminAccessCredentialsCode(){if(document.getElementById("admin-password-input").value===ADMIN_PASSWORD){document.getElementById("admin-auth-area").style.display="none";document.getElementById("admin-controls-area").style.display="block";document.getElementById("admin-fy-text").value=FISCAL_YEAR;document.getElementById("admin-lock-select").value=SYSTEM_LOCK;}else{alert("Access Denied.");closeAdminConfigurationModal();}}
+function commitModifiedAdminAccessKey(){const old=document.getElementById("pw-old").value,nw=document.getElementById("pw-new").value.trim();if(old!==ADMIN_PASSWORD)return alert("Current password is incorrect.");if(!nw)return alert("New password cannot be empty.");ADMIN_PASSWORD=nw;localStorage.setItem("sm_admin_pw",nw);document.getElementById("pw-old").value="";document.getElementById("pw-new").value="";alert("Administrative password changed successfully.");}
+async function applySystemAdminConfigurationsDirectives(){const fy=document.getElementById("admin-fy-text").value.trim(),lock=document.getElementById("admin-lock-select").value;if(!fy)return alert("Fiscal year is required.");const oldDb=db;if(fy!==FISCAL_YEAR){let suppliers=[],items=[];if(oldDb){await new Promise(resolve=>{const tx=oldDb.transaction(["suppliers","items_master"],"readonly");tx.objectStore("suppliers").openCursor().onsuccess=e=>{const c=e.target.result;if(c){suppliers.push(c.value);c.continue();}};tx.objectStore("items_master").openCursor().onsuccess=e=>{const c=e.target.result;if(c){items.push(c.value);c.continue();}};tx.oncomplete=resolve;tx.onerror=resolve;});}FISCAL_YEAR=fy;SYSTEM_LOCK=lock;localStorage.setItem("sm_fiscal_year",fy);localStorage.setItem("sm_system_lock",lock);db=await createFiscalDatabase(`SugarMillDBStore_${fy}`);const tx=db.transaction(["suppliers","items_master"],"readwrite");suppliers.forEach(x=>{const y={...x};delete y.id;tx.objectStore("suppliers").add(y);});items.forEach(x=>tx.objectStore("items_master").put(x));tx.oncomplete=()=>{enforceOperationalEnvironmentLocks();populateSuppliersControlsDropdowns();refreshCachedItemsIndex();resetPurchaseEntryFormLayout();closeAdminConfigurationModal();alert(`Fiscal database switched to ${fy}.`);};return;}SYSTEM_LOCK=lock;localStorage.setItem("sm_system_lock",lock);enforceOperationalEnvironmentLocks();const targets=[];if(document.getElementById("wipe-purchase-cb").checked)targets.push("purchases");if(document.getElementById("wipe-supplier-cb").checked)targets.push("suppliers");if(document.getElementById("wipe-items-cb").checked)targets.push("items_master");if(targets.length&&confirm("Selected database sections will be permanently cleared. Continue?")){const tx=db.transaction(targets,"readwrite");targets.forEach(x=>tx.objectStore(x).clear());tx.oncomplete=()=>{populateSuppliersControlsDropdowns();refreshCachedItemsIndex();resetPurchaseEntryFormLayout();closeAdminConfigurationModal();alert("Selected database sections cleared.");};return;}closeAdminConfigurationModal();alert("System configuration updated successfully.");}
+
+function triggerEncryptedSystemBackup(){
+  if(!db)return alert("Database is not ready.");
+  const tx=db.transaction(["purchases","suppliers","items_master"],"readonly");
+  const p={backupVersion:3,encoding:"utf-8",fiscalYear:FISCAL_YEAR,ts:new Date().toISOString(),purchases:[],suppliers:[],items_master:[]};
+  ["purchases","suppliers","items_master"].forEach(n=>tx.objectStore(n).openCursor().onsuccess=e=>{const c=e.target.result;if(c){p[n].push(c.value);c.continue();}});
+  tx.oncomplete=()=>{
+    try{
+      const text="SMSTORE_BACKUP_V2\n"+JSON.stringify(p);
+      const bytes=new TextEncoder().encode(text);
+      const blob=new Blob([bytes],{type:"application/octet-stream"});
+      if(!blob.size)return alert("Backup file size is 0 bytes. Backup was not downloaded.");
+      const d=new Date(),pad=n=>String(n).padStart(2,"0");
+      const fn=`Backup_${FISCAL_YEAR}_Date_${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}_Time_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}.dat`;
+      const url=URL.createObjectURL(blob),a=document.createElement("a");
+      a.href=url;a.download=fn;a.style.display="none";document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+      alert(`Backup downloaded successfully.\nSize: ${(blob.size/1024).toFixed(2)} KB`);
+    }catch(err){console.error(err);alert("Backup could not be created.");}
+  };
+  tx.onerror=()=>alert("Backup could not be created.");
+}
+function openAdminBackupRestoreDialog(){
+  const i=document.getElementById("admin-backup-restore-input");
+  if(!i)return alert("Backup restore control is not available.");
+  i.value="";
+  i.click();
+}
+function handleAdminBackupRestoreSelection(i){
+  if(i && i.files && i.files.length) restoreDatabaseFromBackupFile(i.files[0],true);
+}
+function triggerSystemDatabaseRecoveryFromHeader(i){if(i&&i.files&&i.files.length)restoreDatabaseFromBackupFile(i.files[0],true);}
+function triggerSystemDatabaseRecovery(){const i=document.getElementById("recovery-file-input");if(!i.files.length)return alert("Please select a .dat backup file.");restoreDatabaseFromBackupFile(i.files[0],false);}
+function parseBackupFileText(rawText){
+  let raw=String(rawText||"").replace(/^\uFEFF/,"").trim(),data;
+  if(raw.startsWith("SMSTORE_BACKUP_V2\n"))raw=raw.substring("SMSTORE_BACKUP_V2\n".length);
+  if(raw.startsWith("{"))return JSON.parse(raw);
+  if(!/^[0-9a-fA-F]+$/.test(raw)||raw.length%2!==0)throw new Error("Invalid backup encoding");
+  const bytes=new Uint8Array(raw.length/2);
+  for(let i=0;i<raw.length;i+=2)bytes[i/2]=parseInt(raw.substr(i,2),16);
+  const text=new TextDecoder("utf-8",{fatal:false}).decode(bytes).replace(/^\uFEFF/,"").trim();
+  return JSON.parse(text);
+}
+function restoreDatabaseFromBackupFile(file,fromAdmin){
+  if(!file)return alert("Please select a backup file.");
+  if(!/\.dat$/i.test(file.name))return alert("Please select a valid .dat backup file.");
+  const r=new FileReader();
+  r.onload=async e=>{
+    try{
+      const data=parseBackupFileText(new TextDecoder("utf-8",{fatal:false}).decode(new Uint8Array(e.target.result)));
+      if(!data.fiscalYear||!Array.isArray(data.purchases)||!Array.isArray(data.suppliers))throw new Error("Invalid backup structure");
+      if(!Array.isArray(data.items_master))data.items_master=[];
+      const fy=String(data.fiscalYear);
+      const msg=`Selected backup:\nFY: ${fy}\nSuppliers: ${data.suppliers.length}\nPurchases: ${data.purchases.length}\nItems: ${data.items_master.length}\n\nIMPORTANT: Existing data in FY ${fy} will be permanently cleared and replaced by this backup.\n\nContinue restore?`;
+      if(!confirm(msg))return;
+      const dbName=`SugarMillDBStore_${fy}`;
+      if(db){try{db.close();}catch(_){} db=null;}
+      await new Promise((resolve,reject)=>{
+        const del=indexedDB.deleteDatabase(dbName);
+        del.onsuccess=()=>resolve();
+        del.onerror=()=>reject(del.error||new Error("Could not clear old database"));
+        del.onblocked=()=>reject(new Error("Old database is still in use. Please close other tabs/windows of this ERP and try again."));
+      });
+      const nd=await createFiscalDatabase(dbName);
+      const tx=nd.transaction(["purchases","suppliers","items_master"],"readwrite");
+      data.purchases.forEach(x=>tx.objectStore("purchases").put(x));
+      data.suppliers.forEach(x=>tx.objectStore("suppliers").put(x));
+      data.items_master.forEach(x=>tx.objectStore("items_master").put(x));
+      await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("Restore transaction failed"));tx.onabort=()=>reject(tx.error||new Error("Restore transaction aborted"));});
+      db=nd;
+      FISCAL_YEAR=fy;
+      localStorage.setItem("sm_fiscal_year",FISCAL_YEAR);
+      document.getElementById("top-display-fy").innerText=FISCAL_YEAR;
+      document.getElementById("recovery-screen").style.display="none";
+      document.getElementById("main-application-frame").style.display="block";
+      enforceOperationalEnvironmentLocks();
+      populateSuppliersControlsDropdowns();
+      refreshCachedItemsIndex();
+      resetPurchaseEntryFormLayout();
+      if(fromAdmin)closeAdminConfigurationModal();
+      alert(`Backup restore successful.\n\nFY: ${FISCAL_YEAR}\nSuppliers restored: ${data.suppliers.length}\nPurchases restored: ${data.purchases.length}\nItems restored: ${data.items_master.length}`);
+    }catch(err){
+      console.error(err);
+      alert("Backup restore failed.\n\n"+(err&&err.message?err.message:"Invalid or damaged backup file."));
+    }
+  };
+  r.onerror=()=>alert("Backup file could not be read.");
+  r.readAsArrayBuffer(file);
+}
+function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+</script>
+</body>
+</html>
